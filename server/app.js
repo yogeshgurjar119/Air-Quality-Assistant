@@ -1,5 +1,3 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import compression from 'compression';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
@@ -8,16 +6,18 @@ import { HttpError } from './errors.js';
 import { parseChat } from './services/chat.js';
 import { parseCity, parseProfile } from './services/profile.js';
 
-const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
-
 /**
  * Identifies the caller for rate limiting. Serverless adapters (Netlify) have no socket address,
  * so `req.ip` can be undefined; fall back to the platform's forwarded-for header.
  */
 const clientKey = (req) => req.ip ?? req.headers['x-forwarded-for']?.split(',')[0].trim() ?? 'anonymous';
 
-/** Builds the Express app. Dependencies are injected so tests can run without network access. */
-export const createApp = ({ config, planner, sourceMonitor, logger = console }) => {
+/**
+ * Builds the Express app. Dependencies are injected so tests can run without network access.
+ * `staticDir` is only passed by the local server: Vercel and Netlify serve `public/` from their CDN,
+ * and this module must stay CommonJS-bundle-safe (no ES-module-only meta properties) because Netlify bundles functions to CommonJS.
+ */
+export const createApp = ({ config, planner, sourceMonitor, staticDir, logger = console }) => {
   const app = express();
   app.disable('x-powered-by');
   // Behind Vercel/Netlify the real client IP is in X-Forwarded-For (needed for per-IP rate limits).
@@ -89,7 +89,7 @@ export const createApp = ({ config, planner, sourceMonitor, logger = console }) 
 
   app.use('/api', api);
   // Always revalidate (ETag → cheap 304s) so deploys and edits are never served stale.
-  app.use(express.static(PUBLIC_DIR, { maxAge: 0, etag: true }));
+  if (staticDir) app.use(express.static(staticDir, { maxAge: 0, etag: true }));
 
   // Unknown API routes and malformed bodies get clean JSON errors.
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found.')));

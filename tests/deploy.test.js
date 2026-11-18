@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { before, describe, it } from 'node:test';
 
 const lambdaEvent = (path) => ({
@@ -32,5 +35,30 @@ describe('serverless entry points', () => {
       assert.equal(result.statusCode, 200, path);
       assert.equal(JSON.parse(result.body).status, 'ok');
     }
+  });
+});
+
+describe('serverless bundling safety', () => {
+  // Netlify bundles functions to CommonJS, where `import.meta` is empty. A module-level
+  // `fileURLToPath(import.meta.url)` crashed the function on load (every /api route returned 502).
+  const collect = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory() ? collect(join(dir, entry.name)) : entry.name.endsWith('.js') ? [join(dir, entry.name)] : [],
+    );
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const bundled = [...collect(join(root, 'server')), ...collect(join(root, 'api')), ...collect(join(root, 'netlify'))]
+    // server/index.js is the local-only entry point and is never bundled for a host.
+    .filter((file) => !file.endsWith(join('server', 'index.js')));
+
+  it('keeps import.meta out of every module a serverless function loads', () => {
+    assert.ok(bundled.length > 10, 'found the function module graph');
+    const offenders = bundled.filter((file) => readFileSync(file, 'utf8').includes('import.meta'));
+    assert.deepEqual(offenders, []);
+  });
+
+  it('builds the app without a static directory (CDN serves public/ on hosts)', async () => {
+    const { createDefaultApp } = await import('../server/bootstrap.js');
+    const { app } = createDefaultApp({});
+    assert.equal(typeof app, 'function');
   });
 });

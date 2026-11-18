@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { after, before, describe, it } from 'node:test';
 import { createApp } from '../server/app.js';
 import { loadConfig } from '../server/config.js';
@@ -8,6 +9,8 @@ import { createSourceMonitor } from '../server/services/sources.js';
 import {
   airOk, airOkWithoutBatch, geocodeOk, jsonResponse, llmOk, routedFetch, silentLogger, upstreamRoutes, validBody,
 } from './helpers.js';
+
+const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
 
 /** Starts the app on an ephemeral port with stubbed upstream services. */
 const startServer = async ({ routes = {}, apiKey = 'test-key', rateLimitPerMinute = 100, aiRateLimitPerMinute = 100, aiBudgetMs } = {}) => {
@@ -21,7 +24,7 @@ const startServer = async ({ routes = {}, apiKey = 'test-key', rateLimitPerMinut
   const llm = createNvidiaClient({ ...config.nvidia, timeoutMs: 1000, budgetMs: aiBudgetMs, fetchImpl });
   const planner = createPlanner({ llm, timeoutMs: 1000, fetchImpl, logger: silentLogger });
   const sourceMonitor = createSourceMonitor({ timeoutMs: 1000, fetchImpl });
-  const server = createApp({ config, planner, sourceMonitor, logger: silentLogger }).listen(0);
+  const server = createApp({ config, planner, sourceMonitor, staticDir: PUBLIC_DIR, logger: silentLogger }).listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   return { server, calls, url: `http://127.0.0.1:${server.address().port}` };
 };
