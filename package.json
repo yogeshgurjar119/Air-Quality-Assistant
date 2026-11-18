@@ -1,0 +1,31 @@
+{
+  "name": "airwise",
+  "version": "1.0.0",
+  "description": "GenAI assistant that turns live air-quality data into low-emission daily routines for families.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "dev": "node --watch --env-file-if-exists=.env server/index.js",
+    "lint": "eslint .",
+    "test": "node --test \"tests/*.test.js\"",
+    "test:coverage": "node --test --experimental-test-coverage \"tests/*.test.js\"",
+    "check": "npm run lint && npm test"
+  },
+  "dependencies": {
+    "compression": "^1.8.2",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "serverless-http": "^3.2.0"
+  },
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0"
+  }
+}
