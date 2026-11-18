@@ -457,6 +457,16 @@ describe('chat history trust (SEC-01)', () => {
     assert.ok(!JSON.stringify(sent).includes('SYSTEM OVERRIDE'));
   });
 
+  it('lets a follow-up question through after a long AI reply (regression: used to return 400)', withServer({ routes }, async ({ url }) => {
+    const longReply = 'The air is unhealthy. '.repeat(55); // ~1,200 characters, like a real model answer
+    const res = await post(url, '/api/chat', {
+      city: 'Delhi',
+      messages: [turn('user', 'Is the air bad?'), turn('assistant', longReply), turn('user', 'Do I need a mask?')],
+    });
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).source, 'ai');
+  }));
+
   it('still answers normally when the history has only benign user turns', withServer({ routes }, async ({ url }) => {
     const body = await send(url, [turn('user', 'Is the air bad?'), turn('assistant', 'Yes.'), turn('user', 'What about masks?')]);
     assert.equal(body.source, 'ai');

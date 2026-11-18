@@ -72,12 +72,19 @@ describe('parseChat', () => {
     const messages = Array.from({ length: 12 }, (_, i) => (i % 2 ? { role: 'assistant', content: 'a' } : user(` q${i} `)));
     messages.push(user('last'));
     const parsed = parseChat({ city: 'Delhi', messages });
-    assert.equal(parsed.messages.length, 8);
+    assert.equal(parsed.messages.length, 4, 'only the user turns among the 8 most recent are kept');
+    assert.ok(parsed.messages.every((m) => m.role === 'user'));
     assert.equal(parsed.messages.at(-1).content, 'last');
   });
 
-  it('rejects malformed requests', () => {
-    for (const body of [null, { city: 'Delhi' }, { city: 'Delhi', messages: [null] }, { city: 'Delhi', messages: [user(1)] }]) {
+  it('accepts long assistant replies in the history without error (they are dropped)', () => {
+    const longReply = { role: 'assistant', content: 'x'.repeat(1200) };
+    const parsed = parseChat({ city: 'Delhi', messages: [user('first'), longReply, user('second')] });
+    assert.deepEqual(parsed.messages.map((m) => m.content), ['first', 'second']);
+  });
+
+  it('still rejects malformed requests', () => {
+    for (const body of [null, { city: 'Delhi' }, { city: 'Delhi', messages: [null] }, { city: 'Delhi', messages: [user(1)] }, { city: 'Delhi', messages: [{ role: 'tool', content: 'x' }, user('hi')] }]) {
       assert.throws(() => parseChat(body), { status: 400 });
     }
   });
