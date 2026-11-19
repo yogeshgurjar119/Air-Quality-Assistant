@@ -22,8 +22,10 @@ const INJECTION_PATTERNS = [
 export const sanitizeText = (value) =>
   String(value).normalize('NFKC').replace(INVISIBLE_CHARACTERS, '').replace(/\s+/g, ' ').trim();
 
+/** True when the text looks like an attempt to override the assistant's instructions. */
 export const isInjectionAttempt = (text) => INJECTION_PATTERNS.some((pattern) => pattern.test(text));
 
+/** Fixed reply sent instead of an AI answer when a message is blocked. */
 export const GUARD_REPLY =
   'I can only help with air quality, pollution exposure and cleaner daily habits. ' +
   'Try asking about exercise, kids, masks, indoor air, cooking or commuting.';

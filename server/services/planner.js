@@ -1,3 +1,4 @@
+import { MINUTE_MS } from '../constants.js';
 import { createAsyncCache } from './cache.js';
 import { createContextService } from './context.js';
 import { buildFallbackPlan } from './fallback.js';
@@ -5,7 +6,7 @@ import { buildFallbackReply } from './fallbackChat.js';
 import { GUARD_REPLY, isInjectionAttempt } from './guard.js';
 import { buildChatMessages, buildMessages } from './prompt.js';
 
-const PLAN_TTL_MS = 10 * 60_000;
+const PLAN_TTL_MS = 10 * MINUTE_MS;
 
 /**
  * Orchestrates air data, the AI plan and the AI chat. The plan degrades gracefully to a

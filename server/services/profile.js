@@ -1,3 +1,4 @@
+import { HTTP } from '../constants.js';
 import { HttpError } from '../errors.js';
 
 /** Allowed values for each lifestyle field. Single source of truth for validation and prompts. */
@@ -10,11 +11,11 @@ export const OPTIONS = Object.freeze({
 });
 
 const MAX_CITY_LENGTH = 80;
-const CITY_PATTERN = /^[\p{L}\p{M}0-9 .,'’()-]+$/u;
+const CITY_PATTERN = /^[\p{L}\p{M}0-9 .,'’‘ʻ()-]+$/u;
 
 const pickEnum = (field, value) => {
   if (!OPTIONS[field].includes(value)) {
-    throw new HttpError(400, `Invalid value for "${field}".`);
+    throw new HttpError(HTTP.BAD_REQUEST, `Invalid value for "${field}".`);
   }
   return value;
 };
@@ -24,14 +25,15 @@ export const parseCity = (value) => {
   const city = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
   const hasLetter = /\p{L}/u.test(city);
   if (city.length < 2 || city.length > MAX_CITY_LENGTH || !hasLetter || !CITY_PATTERN.test(city)) {
-    throw new HttpError(400, 'Please enter a valid city name (2–80 letters).');
+    throw new HttpError(HTTP.BAD_REQUEST, 'Please enter a valid city name (2–80 letters).');
   }
   return city;
 };
 
+/** Returns the body when it is a plain JSON object, otherwise throws a 400. */
 export const requireObject = (body) => {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
-    throw new HttpError(400, 'Request body must be a JSON object.');
+    throw new HttpError(HTTP.BAD_REQUEST, 'Request body must be a JSON object.');
   }
   return body;
 };

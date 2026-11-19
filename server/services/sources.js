@@ -1,8 +1,10 @@
+import { MINUTE_MS } from '../constants.js';
 import { AIR_QUALITY_URL, GEOCODING_URL, SPARQL_URL, WEATHER_URL } from '../data/endpoints.js';
 import { createAsyncCache } from './cache.js';
 import { fetchJson } from './http.js';
 
-const STATUS_TTL_MS = 5 * 60_000;
+const STATUS_TTL_MINUTES = 5;
+const STATUS_TTL_MS = STATUS_TTL_MINUTES * MINUTE_MS;
 /** A status with failures is re-checked sooner, so a brief blip isn't shown for the full TTL. */
 const RECHECK_AFTER_FAILURE_MS = 30_000;
 const PROBE_TIMEOUT_MS = 5_000;

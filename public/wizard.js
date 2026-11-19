@@ -1,7 +1,9 @@
 import { el } from './dom.js';
 import { LAST_STEP, STEPS, clampStep, summarizeProfile, validateStep } from './wizard-model.js';
 
+/** Quick-pick cities shown under the city field. */
 export const POPULAR_CITIES = ['Delhi', 'Mumbai', 'Lahore', 'Beijing', 'London', 'Los Angeles'];
+const noop = () => {};
 
 /** Reads the questionnaire form into the profile object the API expects. */
 export const readProfile = (form) => {
@@ -16,6 +18,81 @@ export const readProfile = (form) => {
   };
 };
 
+const stepState = (index, currentStep) => {
+  if (index < currentStep) return 'done';
+  return index === currentStep ? 'current' : '';
+};
+
+const renderStepper = (stepper, currentStep) => {
+  stepper.replaceChildren(
+    ...STEPS.map((step, index) => {
+      const item = el('li', { text: step.label, className: stepState(index, currentStep) });
+      if (index === currentStep) item.setAttribute('aria-current', 'step');
+      return item;
+    }),
+  );
+};
+
+const renderReview = (review, profile) => {
+  review.replaceChildren(
+    ...summarizeProfile(profile).map(([label, value]) =>
+      el('div', {}, [el('dt', { text: label }), el('dd', { text: value })]),
+    ),
+  );
+};
+
+/** The questionnaire's DOM elements, looked up once. */
+const findWizardElements = (root) => {
+  const $ = (selector) => root.querySelector(selector);
+  return {
+    form: $('#plan-form'),
+    heading: $('#wizard-heading'),
+    stepper: $('#stepper'),
+    review: $('#review'),
+    backButton: $('#back'),
+    nextButton: $('#next'),
+    cityInput: $('#city'),
+    cityError: $('#city-error'),
+    cityChips: $('#city-chips'),
+  };
+};
+
+/** Shows one step: its panel, heading, buttons, stepper and (on the last step) the review summary. */
+const showStep = ({ form, heading, backButton, nextButton, stepper, review }, step) => {
+  form.querySelectorAll('.step').forEach((panel) => {
+    panel.hidden = Number(panel.dataset.step) !== step;
+  });
+  heading.textContent = STEPS[step].title;
+  backButton.hidden = step === 0;
+  nextButton.textContent = step === LAST_STEP ? 'Show my plan' : 'Next';
+  if (step === LAST_STEP) renderReview(review, readProfile(form));
+  renderStepper(stepper, step);
+};
+
+/** The city input with its accessible error message. */
+const createCityField = (input, errorMessage) => ({
+  input,
+  showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.hidden = false;
+    input.setAttribute('aria-invalid', 'true');
+    input.focus();
+  },
+  clearError() {
+    errorMessage.textContent = '';
+    errorMessage.hidden = true;
+    input.setAttribute('aria-invalid', 'false');
+  },
+});
+
+const addPopularCities = (list, onPick) => {
+  POPULAR_CITIES.forEach((city) => {
+    const button = el('button', { className: 'chip', text: city, attrs: { type: 'button' } });
+    button.addEventListener('click', () => onPick(city));
+    list.append(el('li', {}, [button]));
+  });
+};
+
 /**
  * Drives the step-by-step questionnaire inside `root`: step navigation, per-step validation,
  * the stepper and review summary, and the popular-city shortcuts.
@@ -25,88 +102,35 @@ export const readProfile = (form) => {
  * @param {(profile: object) => void} options.onComplete Called with the profile when the last step is submitted.
  * @param {(city: string) => void} [options.onCity] Called whenever the user commits to a city.
  */
-export const createWizard = ({ root, onComplete, onCity = () => {} }) => {
-  const $ = (selector) => root.querySelector(selector);
-  const form = $('#plan-form');
-  const cityInput = $('#city');
-  const cityError = $('#city-error');
-  const heading = $('#wizard-heading');
-  const stepper = $('#stepper');
-  const backButton = $('#back');
-  const nextButton = $('#next');
-  const review = $('#review');
+export const createWizard = ({ root, onComplete, onCity = noop }) => {
+  const ui = findWizardElements(root);
+  const city = createCityField(ui.cityInput, ui.cityError);
   let currentStep = 0;
-
-  const showCityError = (message) => {
-    cityError.textContent = message ?? '';
-    cityError.hidden = !message;
-    cityInput.setAttribute('aria-invalid', String(Boolean(message)));
-  };
-
-  const stepState = (index) => {
-    if (index < currentStep) return 'done';
-    return index === currentStep ? 'current' : '';
-  };
-
-  const renderStepper = () => {
-    stepper.replaceChildren(
-      ...STEPS.map((step, index) => {
-        const item = el('li', { text: step.label, className: stepState(index) });
-        if (index === currentStep) item.setAttribute('aria-current', 'step');
-        return item;
-      }),
-    );
-  };
-
-  const renderReview = () => {
-    review.replaceChildren(
-      ...summarizeProfile(readProfile(form)).map(([label, value]) =>
-        el('div', {}, [el('dt', { text: label }), el('dd', { text: value })]),
-      ),
-    );
-  };
 
   const goToStep = (index, { focus = true } = {}) => {
     currentStep = clampStep(index);
-    form.querySelectorAll('.step').forEach((panel) => {
-      panel.hidden = Number(panel.dataset.step) !== currentStep;
-    });
-    heading.textContent = STEPS[currentStep].title;
-    backButton.hidden = currentStep === 0;
-    nextButton.textContent = currentStep === LAST_STEP ? 'Show my plan' : 'Next';
-    if (currentStep === LAST_STEP) renderReview();
-    renderStepper();
-    if (focus) heading.focus();
+    showStep(ui, currentStep);
+    if (focus) ui.heading.focus();
   };
 
-  form.addEventListener('submit', (event) => {
+  const submitStep = (event) => {
     event.preventDefault();
-    const profile = readProfile(form);
+    const profile = readProfile(ui.form);
     const problem = validateStep(currentStep, profile);
-    if (problem) {
-      showCityError(problem);
-      cityInput.focus();
-      return;
-    }
-    showCityError(null);
+    if (problem) return city.showError(problem);
+    city.clearError();
     onCity(profile.city);
-    if (currentStep < LAST_STEP) goToStep(currentStep + 1);
-    else onComplete(profile);
+    return currentStep < LAST_STEP ? goToStep(currentStep + 1) : onComplete(profile);
+  };
+
+  ui.form.addEventListener('submit', submitStep);
+  ui.backButton.addEventListener('click', () => goToStep(currentStep - 1));
+  addPopularCities(ui.cityChips, (name) => {
+    city.input.value = name;
+    onCity(name);
+    city.clearError();
+    goToStep(1);
   });
-
-  backButton.addEventListener('click', () => goToStep(currentStep - 1));
-
-  POPULAR_CITIES.forEach((city) => {
-    const button = el('button', { className: 'chip', text: city, attrs: { type: 'button' } });
-    button.addEventListener('click', () => {
-      cityInput.value = city;
-      onCity(city);
-      showCityError(null);
-      goToStep(1);
-    });
-    $('#city-chips').append(el('li', {}, [button]));
-  });
-
   goToStep(0, { focus: false });
 
   return {
@@ -115,7 +139,7 @@ export const createWizard = ({ root, onComplete, onCity = () => {} }) => {
     reset: () => goToStep(0),
     /** Disables the submit button while a plan is being generated. */
     setBusy: (busy) => {
-      nextButton.disabled = busy;
+      ui.nextButton.disabled = busy;
     },
     get step() {
       return currentStep;

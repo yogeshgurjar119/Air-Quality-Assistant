@@ -18,6 +18,7 @@ const buildModelChain = (env) => {
 /** Serverless hosts (Vercel sets VERCEL, Netlify sets NETLIFY) sit behind exactly one proxy. */
 const defaultTrustProxy = (env) => (env.VERCEL || env.NETLIFY ? 1 : 0);
 
+/** Reads and validates settings from environment variables, with safe defaults. */
 export const loadConfig = (env = process.env) => ({
   port: toInt(env.PORT, { min: 1, fallback: 3000 }),
   trustProxy: toInt(env.TRUST_PROXY, { min: 0, fallback: defaultTrustProxy(env) }),

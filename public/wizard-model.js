@@ -1,5 +1,6 @@
 /** Pure wizard logic (no DOM) so it can be unit-tested in Node. */
 
+/** The questionnaire steps in order. */
 export const STEPS = Object.freeze([
   { id: 'place', label: 'Place', title: 'Where do you live?' },
   { id: 'travel', label: 'Daily life', title: 'How do you get around and cook?' },
@@ -7,6 +8,7 @@ export const STEPS = Object.freeze([
   { id: 'review', label: 'Review', title: 'Ready for your plan' },
 ]);
 
+/** Index of the final (review) step. */
 export const LAST_STEP = STEPS.length - 1;
 
 /** Human-readable labels for every answer, keyed by profile field. */
@@ -36,6 +38,7 @@ export const LABELS = Object.freeze({
   },
 });
 
+/** Keeps a step index within the valid range. */
 export const clampStep = (index) => Math.min(Math.max(index, 0), LAST_STEP);
 
 /** Returns an error message if the answers on `stepIndex` are incomplete, otherwise null. */

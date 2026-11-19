@@ -29,7 +29,7 @@ AirWise is a GenAI assistant that turns **live air-quality data** for a user's c
 npm install
 cp .env.example .env     # then paste your AI API key into .env
 npm start                # http://localhost:3000
-npm run check            # format check + lint + 173 tests (no network or key needed)
+npm run check            # format check + lint + 192 tests (no network or key needed)
 npm run test:coverage    # line/branch coverage for server and UI modules
 npm run format           # auto-format everything with Prettier
 ```
@@ -58,6 +58,41 @@ npm run format           # auto-format everything with Prettier
 | Population & area | [Wikidata SPARQL](https://query.wikidata.org/) (via GeoNames id) | Population density |
 
 The header calls `GET /api/sources`, which probes each of these with a tiny request (cached for 5 minutes, so at most 4 small upstream calls per 5 minutes however many people visit). Weather and density are optional enrichments: if either provider fails, the app still responds with air quality and the plan. (World Bank and REST Countries were evaluated but rejected — the former blocks automated clients, the latter's v3.1 API is deprecated.)
+
+## API examples
+
+All endpoints return JSON, are rate limited, send `Cache-Control: no-store` and carry an `X-Request-Id` header. Errors look like `{ "error": "message" }` and never echo your input.
+
+```bash
+# Live air quality, weather, density and a 24-hour forecast
+curl "http://localhost:3000/api/air?city=Oslo"
+```
+
+```json
+{
+  "location": { "name": "Oslo", "country": "Norway", "countryCode": "NO", "latitude": 59.91, "longitude": 10.75, "population": 1082575 },
+  "air": { "aqi": 36, "level": "good", "label": "Good", "pm25": 3.8, "pm10": 6.3, "no2": 11.1, "ozone": 54, "forecast": { "hours": [{ "time": "2026-11-19T13:00", "aqi": 36, "level": "good" }] } }
+}
+```
+
+```bash
+# Personalised plan (AI, with a built-in rule-based fallback). `source` is "ai" or "rules".
+curl -X POST http://localhost:3000/api/plan -H "content-type: application/json" \
+  -d '{"city":"Delhi","commute":"motorbike","cooking":"lpg_gas","home":"apartment","purifier":"none","vulnerable":["children"]}'
+
+# Chat about air quality. `source` is "ai", "rules" or "guard" (message blocked).
+curl -X POST http://localhost:3000/api/chat -H "content-type: application/json" \
+  -d '{"city":"Delhi","messages":[{"role":"user","content":"Do I need a mask today?"}]}'
+
+# Off-topic or hostile input gets a safe, fixed reply:
+#   {"reply":"I can only help with air quality, pollution exposure and cleaner daily habits. ...","source":"guard"}
+# An invalid city gets HTTP 400:
+curl -i "http://localhost:3000/api/air?city=%3Cscript%3E"
+
+# Data-source status for the header, and a health check
+curl http://localhost:3000/api/sources
+curl http://localhost:3000/api/health
+```
 
 ## Deploy
 
@@ -95,20 +130,23 @@ server/
   app.js                   Express app: security headers, gzip, rate limits, routes, error mapping
   securityHeaders.js       single source of truth for CSP / Permissions-Policy
   config.js, errors.js     validated env config, user-safe HttpError
-  data/                    endpoints.js (upstream URLs), majorCities.js (comparison list)
+  constants.js, requestLog.js  named HTTP codes/time units; structured JSON request log (no query, body or IP)
+  data/                    endpoints.js (upstream URLs), majorCities.js (comparison list), advice.js (built-in advice content)
   services/
     profile.js, chat.js, guard.js   input validation, sanitising, prompt-injection screen
     airQuality.js, weather.js, density.js, aqi.js, comparison.js   data providers + pure maths
     context.js, cache.js, http.js, sources.js   parallel fetch, TTL/in-flight cache, source health
     prompt.js, nvidia.js, planSchema.js         prompts, LLM client + model chain, output validation
-    fallback.js, fallbackChat.js, planner.js    built-in answers + orchestration
+    fallback.js, fallbackChat.js, planner.js    built-in answer selection logic (content lives in data/advice.js) + orchestration
 api/index.js               Vercel entry      netlify/functions/api.js   Netlify entry
 public/                    index.html, styles.css
   app.js                   composition root (wiring only)
   wizard.js, wizard-model.js   questionnaire controller + pure step/label logic
   results.js               results screen: air first, AI plan after, stale-response safe
-  chat.js, header.js, render.js, airfx.js, dom.js, api.js, format.js   UI modules (each unit-tested)
-tests/                     unit, API, UI (jsdom), headers and deploy-entry tests
+  chat.js, header.js, airfx.js, dom.js, api.js, format.js   UI modules (each unit-tested)
+  render.js                entry point for render-air.js (dashboard), render-plan.js (AI plan), gauge.js (AQI gauge)
+tests/                     one file per concern: API (air, plan, chat, security, resilience), validation,
+                           providers, LLM client, fallback answers, UI (jsdom), security headers, deploy entries
 .github/                   CI workflow (format, lint, tests+coverage, audit) and Dependabot
 ```
 
@@ -135,10 +173,10 @@ These cases are covered by automated tests (`tests/api.test.js` → "hostile and
 
 | Area | What was done |
 |---|---|
-| **Code quality** | Prettier + ESLint enforced by `npm run check` and CI; small single-purpose modules (frontend split into wizard / results / chat / header / render with `app.js` as wiring only); dependency injection; one source of truth for the security policy and upstream endpoints (with parity tests); pure `describeError` / `clientKey` helpers; no dead code; JSDoc on non-obvious functions; Dependabot for dependency updates |
+| **Code quality** | Prettier + ESLint enforced by `npm run check` and CI, **including maintainability limits** (cyclomatic complexity ≤ 8, ≤ 40 lines per function, nesting ≤ 3, ≤ 4 parameters, no nested ternaries, no `await` in loops) that the application code meets with zero violations; small single-purpose modules and functions (frontend split into wizard / results / chat / header / render-air / render-plan / gauge, with `app.js` as wiring only); content separated from logic (`server/data/advice.js`); dependency injection; one source of truth for the security policy and upstream endpoints (with parity tests); no duplicated blocks; JSDoc on non-obvious functions; Dependabot for dependency updates |
 | **Security** | API key server-side only, git-ignored; defence in depth for unrelated/hostile input (see above): allow-list validation, sanitising, pre-model injection screen, topic-restricted prompts, textContent-only rendering; 4 KB body limit; general + stricter AI per-IP rate limits (work behind Vercel/Netlify proxies); Permissions-Policy; `helmet` CSP with no inline script/style; XSS-safe rendering; sanitised upstream errors; timeouts everywhere; `npm audit`: 0 vulnerabilities |
 | **Efficiency** | No build step or framework; parallel + cached + de-duplicated upstream calls; gzip; capped LLM tokens; ~0.2 MB source |
-| **Testing** | 173 tests: backend and API (hostile input, model failover, cooldown, time budget, built-in answers, 404/413/429/502/503, headers, deploy entries), plus **jsdom tests for the UI** (wizard, results screen incl. stale responses, chat panel, header status, rendering and XSS safety, animation, API client). Coverage covers the server and every UI module; `public/airfx.js` is only partly covered because its per-frame drawing loop needs a real canvas. |
+| **Testing** | 192 tests in 25 focused files: backend and API (hostile input, model failover, cooldown, time budget, built-in answers, 404/413/429/502/503, headers, deploy entries) plus **jsdom tests for every UI module** and **real-browser end-to-end tests with axe-core accessibility audits** (full journey, hostile input, keyboard use, responsive layouts, light/dark, mobile) (wizard, results incl. stale responses, chat panel, header status, rendering and XSS safety, animation, API client). Coverage covers the server and every UI module; the per-frame drawing loop in `public/airfx.js` is only partly covered because it needs a real canvas. |
 | **Accessibility** | Landmarks, skip link, visible labels, `fieldset/legend`, `role="log"` chat, `aria-live`/`aria-busy`, `role="alert"` errors, text alternatives for gauge and chart (cleanest/worst hour spelled out), AQI never colour-only, 44 px targets, focus rings, light/dark, `prefers-reduced-motion` disables all animation incl. the particle canvas (which is `aria-hidden`) |
 | **Problem alignment** | The brief asks for low-emission routines, indoor hacks and sustainable alternatives, tailored to location and lifestyle, with the direct impact explained. AirWise uses live local data (city AQI, pollutants, weather, density), a 4-step lifestyle questionnaire (commute, cooking fuel, home, purifier, sensitive members), three plan sections each with a "Why it matters" line, WHO-guideline and world-comparison context that make the stakes concrete, and a grounded chat assistant. It works for families with or without AI. |
 

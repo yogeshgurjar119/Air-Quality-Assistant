@@ -3,25 +3,36 @@
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
 const grouped = new Intl.NumberFormat('en');
 
-export const formatPopulation = (value) => (value >= 100_000 ? compact.format(value) : grouped.format(value));
+const COMPACT_FROM = 100_000;
+const CLOCK_START = 11;
+const CLOCK_END = 16;
+/** Residents per km² where the density label changes. */
+const DENSITY_LIMITS = Object.freeze({ low: 1_500, moderate: 5_000, dense: 15_000 });
+/** The gauge scale tops out at this US AQI. */
+const GAUGE_MAX_AQI = 300;
+const MIN_BAR_PERCENT = 3;
+
+/** Formats a population, abbreviating large values (e.g. 1.4M). */
+export const formatPopulation = (value) => (value >= COMPACT_FROM ? compact.format(value) : grouped.format(value));
+/** Formats a number with locale digit grouping. */
 export const formatNumber = (value) => grouped.format(value);
 
 /** "2026-11-18T14:00" → "14:00" */
-export const formatHour = (isoLocal) => String(isoLocal).slice(11, 16);
+export const formatHour = (isoLocal) => String(isoLocal).slice(CLOCK_START, CLOCK_END);
 
 /** Descriptive tier for residents per km². */
 export const densityTier = (perKm2) => {
-  if (perKm2 < 1_500) return 'Low density';
-  if (perKm2 < 5_000) return 'Moderate density';
-  if (perKm2 < 15_000) return 'Dense';
+  if (perKm2 < DENSITY_LIMITS.low) return 'Low density';
+  if (perKm2 < DENSITY_LIMITS.moderate) return 'Moderate density';
+  if (perKm2 < DENSITY_LIMITS.dense) return 'Dense';
   return 'Very dense';
 };
 
-/** Share of the gauge arc to fill (0–1); the scale tops out at AQI 300. */
-export const gaugeFraction = (aqi) => Math.min(Math.max(aqi, 0), 300) / 300;
+/** Share of the gauge arc to fill (0–1); the scale tops out at GAUGE_MAX_AQI. */
+export const gaugeFraction = (aqi) => Math.min(Math.max(aqi, 0), GAUGE_MAX_AQI) / GAUGE_MAX_AQI;
 
 /** Bar height as a CSS percentage string, never below a visible minimum. */
-export const barHeight = (aqi) => `${Math.max(gaugeFraction(aqi) * 100, 3).toFixed(1)}%`;
+export const barHeight = (aqi) => `${Math.max(gaugeFraction(aqi) * 100, MIN_BAR_PERCENT).toFixed(1)}%`;
 
 /** One-sentence accessible summary of the 24 h outlook, naming the cleanest and worst hours. */
 export const summarizeForecast = ({ hours, best }) => {
@@ -51,10 +62,14 @@ export const rankSentence = ({ rank, total }) => {
   return `#${rank} most polluted of ${total} major cities`;
 };
 
+const sourceState = (live, total) => {
+  if (live === total) return 'ok';
+  return live === 0 ? 'down' : 'partial';
+};
+
 /** Summarises the data-source health list for the header, e.g. "3 of 4 free data sources live". */
 export const summarizeSources = (sources) => {
   const total = sources.length;
   const live = sources.filter((source) => source.ok).length;
-  const state = live === total ? 'ok' : live === 0 ? 'down' : 'partial';
-  return { live, total, state, label: `${live} of ${total} free data sources live` };
+  return { live, total, state: sourceState(live, total), label: `${live} of ${total} free data sources live` };
 };

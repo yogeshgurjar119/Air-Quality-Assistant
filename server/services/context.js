@@ -1,3 +1,4 @@
+import { MINUTE_MS } from '../constants.js';
 import { MAJOR_CITIES } from '../data/majorCities.js';
 import { fetchAirQuality, fetchBatchAqi, geocodeCity } from './airQuality.js';
 import { createAsyncCache } from './cache.js';
@@ -5,8 +6,9 @@ import { buildComparison } from './comparison.js';
 import { fetchDensity } from './density.js';
 import { fetchWeather } from './weather.js';
 
-const CONTEXT_TTL_MS = 10 * 60_000;
-const WORLD_TTL_MS = 30 * 60_000;
+const CONTEXT_TTL_MS = 10 * MINUTE_MS;
+const WORLD_TTL_MINUTES = 30;
+const WORLD_TTL_MS = WORLD_TTL_MINUTES * MINUTE_MS;
 
 /** Runs an optional enrichment; its failure must never break the core air-quality response. */
 const optional = async (work, logger) => {

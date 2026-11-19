@@ -12,6 +12,7 @@ export const el = (tag, { className, text, attrs = {} } = {}, children = []) => 
   return node;
 };
 
+/** Creates an SVG element with attributes and children. */
 export const svg = (tag, attrs = {}, children = []) => {
   const node = document.createElementNS(SVG_NS, tag);
   Object.entries(attrs).forEach(([name, value]) => node.setAttribute(name, value));

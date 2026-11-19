@@ -1,5 +1,7 @@
+import { HTTP } from '../constants.js';
 import { HttpError } from '../errors.js';
 
+/** The three plan sections the AI must return. */
 export const SECTION_KEYS = Object.freeze(['routines', 'indoor', 'alternatives']);
 
 const MAX_ITEMS_PER_SECTION = 5;
@@ -40,7 +42,7 @@ export const normalizePlan = (raw) => {
   }
   const isUsable = summary && SECTION_KEYS.every((key) => plan[key].length > 0);
   if (!isUsable) {
-    throw new HttpError(502, 'The AI returned an incomplete plan.');
+    throw new HttpError(HTTP.BAD_GATEWAY, 'The AI returned an incomplete plan.');
   }
   return plan;
 };

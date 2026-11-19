@@ -2,7 +2,9 @@ import { fetchSources } from './api.js';
 import { el } from './dom.js';
 import { summarizeSources } from './format.js';
 
-const REFRESH_MS = 5 * 60_000;
+const MINUTE_MS = 60_000;
+const REFRESH_MINUTES = 5;
+const REFRESH_MS = REFRESH_MINUTES * MINUTE_MS;
 
 const chip = (source) =>
   el('li', {}, [

@@ -59,7 +59,9 @@ const OVERVIEW = {
   hazardous: 'Stay indoors with filtered air and avoid all outdoor exertion.',
 };
 
-const formatHour = (iso) => (typeof iso === 'string' ? iso.slice(11, 16) : null);
+const ISO_TIME_START = 11;
+const ISO_TIME_END = 16;
+const formatHour = (iso) => (typeof iso === 'string' ? iso.slice(ISO_TIME_START, ISO_TIME_END) : null);
 
 /**
  * Rule-based chat answer built from live city data. Used when no AI model can respond,

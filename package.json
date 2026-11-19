@@ -12,7 +12,7 @@
     "dev": "node --watch --env-file-if-exists=.env server/index.js",
     "lint": "eslint .",
     "test": "node --test \"tests/*.test.js\"",
-    "test:coverage": "node --test --experimental-test-coverage \"tests/*.test.js\"",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-functions=85 \"tests/*.test.js\"",
     "check": "npm run format:check && npm run lint && npm test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -27,9 +27,26 @@
   "license": "MPL-2.0",
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "axe-core": "^4.14.1",
     "eslint": "^9.39.5",
     "globals": "^17.14.0",
     "jsdom": "^29.1.1",
-    "prettier": "^3.10.1"
-  }
+    "prettier": "^3.10.1",
+    "puppeteer-core": "^25.18.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yogeshgurjar119/Air-Quality-Assistant.git"
+  },
+  "homepage": "https://air-wise.netlify.app/",
+  "bugs": {
+    "url": "https://github.com/yogeshgurjar119/Air-Quality-Assistant/issues"
+  },
+  "author": "Yogesh Gurjar",
+  "keywords": [
+    "air-quality",
+    "genai",
+    "accessibility",
+    "express"
+  ]
 }

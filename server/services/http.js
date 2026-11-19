@@ -1,3 +1,4 @@
+import { HTTP } from '../constants.js';
 import { HttpError } from '../errors.js';
 
 /**
@@ -9,14 +10,14 @@ export const fetchJson = async (url, { fetchImpl = fetch, timeoutMs, ...init } =
   try {
     response = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   } catch {
-    throw new HttpError(502, 'An upstream service is unreachable. Please try again.');
+    throw new HttpError(HTTP.BAD_GATEWAY, 'An upstream service is unreachable. Please try again.');
   }
   if (!response.ok) {
-    throw new HttpError(502, 'An upstream service returned an error. Please try again.');
+    throw new HttpError(HTTP.BAD_GATEWAY, 'An upstream service returned an error. Please try again.');
   }
   try {
     return await response.json();
   } catch {
-    throw new HttpError(502, 'An upstream service returned an unreadable response.');
+    throw new HttpError(HTTP.BAD_GATEWAY, 'An upstream service returned an unreadable response.');
   }
 };
