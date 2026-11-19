@@ -7,4 +7,10 @@ const FUNCTION_PREFIX = '/.netlify/functions/api';
 
 /** Normalises the path so Express always sees /api/... however Netlify invoked us. */
 export const handler = (event, context) =>
-  handle({ ...event, path: event.path.startsWith(FUNCTION_PREFIX) ? `/api${event.path.slice(FUNCTION_PREFIX.length)}` : event.path }, context);
+  handle(
+    {
+      ...event,
+      path: event.path.startsWith(FUNCTION_PREFIX) ? `/api${event.path.slice(FUNCTION_PREFIX.length)}` : event.path,
+    },
+    context,
+  );

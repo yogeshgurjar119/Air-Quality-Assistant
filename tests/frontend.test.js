@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { summarizeSources, barHeight, barWidth, rankSentence, whoNote, densityTier, formatHour, formatNumber, formatPopulation, gaugeFraction, summarizeForecast } from '../public/format.js';
+import {
+  summarizeSources,
+  barHeight,
+  barWidth,
+  rankSentence,
+  whoNote,
+  densityTier,
+  formatHour,
+  formatNumber,
+  formatPopulation,
+  gaugeFraction,
+  summarizeForecast,
+} from '../public/format.js';
 
 describe('frontend formatting', () => {
   it('formats populations compactly only when large', () => {
@@ -63,7 +75,12 @@ describe('source status summary', () => {
   const sources = (...flags) => flags.map((ok) => ({ ok }));
 
   it('summarises live, partial and down states', () => {
-    assert.deepEqual(summarizeSources(sources(true, true, true, true)), { live: 4, total: 4, state: 'ok', label: '4 of 4 free data sources live' });
+    assert.deepEqual(summarizeSources(sources(true, true, true, true)), {
+      live: 4,
+      total: 4,
+      state: 'ok',
+      label: '4 of 4 free data sources live',
+    });
     assert.equal(summarizeSources(sources(true, false)).state, 'partial');
     assert.equal(summarizeSources(sources(false, false)).state, 'down');
     assert.equal(summarizeSources(sources(true, false)).label, '1 of 2 free data sources live');

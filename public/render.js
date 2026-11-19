@@ -1,7 +1,15 @@
 import { el, setAqiColor, svg } from './dom.js';
 import {
-  barHeight, barWidth, densityTier, formatHour, formatNumber, formatPopulation,
-  gaugeFraction, rankSentence, summarizeForecast, whoNote,
+  barHeight,
+  barWidth,
+  densityTier,
+  formatHour,
+  formatNumber,
+  formatPopulation,
+  gaugeFraction,
+  rankSentence,
+  summarizeForecast,
+  whoNote,
 } from './format.js';
 
 const SECTIONS = [
@@ -16,7 +24,14 @@ const ARC_PATH = `M 20 100 A ${ARC_RADIUS} ${ARC_RADIUS} 0 0 1 180 100`;
 
 const renderGauge = (air) => {
   const arc = (className, extra = {}) =>
-    svg('path', { d: ARC_PATH, fill: 'none', 'stroke-width': 14, 'stroke-linecap': 'round', class: className, ...extra });
+    svg('path', {
+      d: ARC_PATH,
+      fill: 'none',
+      'stroke-width': 14,
+      'stroke-linecap': 'round',
+      class: className,
+      ...extra,
+    });
   const label = (className, y, text) => {
     const node = svg('text', { x: 100, y, class: className });
     node.textContent = text;
@@ -27,7 +42,9 @@ const renderGauge = (air) => {
     { viewBox: '0 0 200 120', class: 'gauge', role: 'img', 'aria-label': `US AQI ${air.aqi}, ${air.label}` },
     [
       arc('track'),
-      arc('fill', { 'stroke-dasharray': `${(ARC_LENGTH * gaugeFraction(air.aqi)).toFixed(1)} ${ARC_LENGTH.toFixed(1)}` }),
+      arc('fill', {
+        'stroke-dasharray': `${(ARC_LENGTH * gaugeFraction(air.aqi)).toFixed(1)} ${ARC_LENGTH.toFixed(1)}`,
+      }),
       label('num', 92, String(air.aqi)),
       label('cap', 112, 'US AQI'),
     ],
@@ -61,7 +78,7 @@ const tile = (name, value, unit, note) =>
   el('li', { className: 'tile' }, [
     el('span', { className: 'k', text: name }),
     el('span', { className: 'v', text: String(value) }, unit ? [el('span', { className: 'u', text: unit })] : []),
-    note ? el('span', { className: note.startsWith('Within') ? 'who ok' : 'who high', text: note }) : el('span'),
+    note ? el('span', { className: note.startsWith('Within') ? 'who ok' : 'who high', text: note }) : null,
   ]);
 
 const renderTiles = ({ air, weather }) => {
@@ -85,7 +102,10 @@ const renderTiles = ({ air, weather }) => {
 
 const renderComparison = ({ comparison, location }) => {
   if (!comparison) return null;
-  const list = el('ol', { className: 'compare-list', attrs: { tabindex: '0', 'aria-label': 'Cities ranked by current AQI, most polluted first' } });
+  const list = el('ol', {
+    className: 'compare-list',
+    attrs: { tabindex: '0', 'aria-label': 'Cities ranked by current AQI, most polluted first' },
+  });
   comparison.cities.forEach((city) => {
     const bar = el('span', { className: 'compare-fill' });
     bar.style.setProperty('--w', barWidth(city.aqi));
@@ -110,13 +130,16 @@ const renderComparison = ({ comparison, location }) => {
   return el('section', { className: 'card', attrs: { 'aria-labelledby': 'compare-title' } }, [
     el('h3', { text: `${location.name} vs the world`, attrs: { id: 'compare-title' } }),
     el('p', { className: 'forecast-summary', text: rankSentence(comparison) }),
-    countryLine ?? el('span'),
+    countryLine,
     list,
   ]);
 };
 
 const renderForecast = ({ forecast }) => {
-  const bars = el('div', { className: 'forecast-bars', attrs: { role: 'img', 'aria-label': summarizeForecast(forecast) } });
+  const bars = el('div', {
+    className: 'forecast-bars',
+    attrs: { role: 'img', 'aria-label': summarizeForecast(forecast) },
+  });
   forecast.hours.forEach((hour, index) => {
     const bar = el('div', { className: hour.time === forecast.best?.time ? 'bar best' : 'bar' });
     bar.style.setProperty('--h', barHeight(hour.aqi));
@@ -135,7 +158,7 @@ const renderForecast = ({ forecast }) => {
           el('span', { text: formatHour(first.time) }),
           el('span', { text: formatHour(last.time) }),
         ])
-      : el('span'),
+      : null,
   ]);
 };
 
@@ -145,7 +168,9 @@ const renderDensity = ({ air, density, location }) => {
     el('div', {}, [el('div', { className: 'big', text: value }), el('div', { className: 'hint', text: caption })]);
   const stats = [stat(formatPopulation(density.population), `residents breathing ${air.label.toLowerCase()} air`)];
   if (density.perKm2) {
-    stats.push(stat(`${formatNumber(density.perKm2)}/km²`, `${densityTier(density.perKm2)} — more people share the same air`));
+    stats.push(
+      stat(`${formatNumber(density.perKm2)}/km²`, `${densityTier(density.perKm2)} — more people share the same air`),
+    );
   }
   return el('section', { className: 'card', attrs: { 'aria-labelledby': 'density-title' } }, [
     el('h3', { text: `People in ${location.name}`, attrs: { id: 'density-title' } }),
@@ -178,12 +203,19 @@ const renderItem = (item) =>
   el('li', { className: 'plan-item' }, [
     el('h4', { text: item.title }),
     el('p', { text: item.action }),
-    el('p', { className: 'impact' }, [el('strong', { text: 'Why it matters: ' }), document.createTextNode(item.impact)]),
+    el('p', { className: 'impact' }, [
+      el('strong', { text: 'Why it matters: ' }),
+      document.createTextNode(item.impact),
+    ]),
   ]);
 
 /** Shows placeholder lines while the AI plan is generated. */
 export const renderPlanLoading = (container) => {
-  const lines = [el('div', { className: 'line' }), el('div', { className: 'line short' }), el('div', { className: 'line' })];
+  const lines = [
+    el('div', { className: 'line' }),
+    el('div', { className: 'line short' }),
+    el('div', { className: 'line' }),
+  ];
   container.replaceChildren(
     el('section', { className: 'card skeleton', attrs: { 'aria-label': 'Loading your plan' } }, [
       el('p', { className: 'hint', text: 'Preparing your personalised plan…' }),
@@ -209,6 +241,10 @@ export const renderPlan = (container, { plan, source }) => {
       el('p', { className: 'summary', text: plan.summary }),
       el('p', { className: 'source', text: sourceText }),
     ]),
-    el('div', { className: 'plan-grid' }, columns.map((col) => el('div', { className: 'card' }, [col]))),
+    el(
+      'div',
+      { className: 'plan-grid' },
+      columns.map((col) => el('div', { className: 'card' }, [col])),
+    ),
   );
 };

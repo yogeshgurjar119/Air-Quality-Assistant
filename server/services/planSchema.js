@@ -5,8 +5,7 @@ export const SECTION_KEYS = Object.freeze(['routines', 'indoor', 'alternatives']
 const MAX_ITEMS_PER_SECTION = 5;
 const MAX_LENGTHS = Object.freeze({ summary: 400, title: 80, action: 300, impact: 300 });
 
-const clean = (value, max) =>
-  typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
+const clean = (value, max) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '');
 
 const normalizeItem = (item) => {
   const title = clean(item?.title, MAX_LENGTHS.title);

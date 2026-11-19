@@ -17,7 +17,8 @@ const INTENTS = [
         : 'Outdoor play is fine for most children today. Avoid playing right beside busy roads, and keep reliever medication handy if a child has asthma.',
   },
   {
-    pattern: /\b(exercise|jog|jogging|run|running|workout|gym|sport|sports|walk|cycling|cycle|outside|outdoor|outdoors|play)\b/,
+    pattern:
+      /\b(exercise|jog|jogging|run|running|workout|gym|sport|sports|walk|cycling|cycle|outside|outdoor|outdoors|play)\b/,
     advise: ({ poor, best }) =>
       poor
         ? `Skip hard outdoor exercise today because heavy breathing pulls more fine particles deep into your lungs.${best ? ` If you must go out, the cleanest hour is around ${best}.` : ''}`
@@ -72,6 +73,8 @@ export const buildFallbackReply = ({ location, air }, question) => {
   };
   const intent = INTENTS.find(({ pattern }) => pattern.test(text));
   const lead = `${location.name} AQI is ${air.aqi} (${air.label}).`;
-  const body = intent ? intent.advise(advice) : `${OVERVIEW[air.level]} Ask me about exercise, kids, masks, indoor air, cooking or commuting.`;
+  const body = intent
+    ? intent.advise(advice)
+    : `${OVERVIEW[air.level]} Ask me about exercise, kids, masks, indoor air, cooking or commuting.`;
   return `${lead} ${body}`;
 };

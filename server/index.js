@@ -6,6 +6,8 @@ const staticDir = fileURLToPath(new URL('../public', import.meta.url));
 const { app, config, llm } = createDefaultApp(process.env, { staticDir });
 
 app.listen(config.port, () => {
-  const mode = llm.isConfigured ? `AI models: ${config.nvidia.models.join(' → ')}` : 'offline rules mode (no NVIDIA_API_KEY)';
+  const mode = llm.isConfigured
+    ? `AI models: ${config.nvidia.models.join(' → ')}`
+    : 'offline rules mode (no NVIDIA_API_KEY)';
   console.log(`AirWise on http://localhost:${config.port} — ${mode}`);
 });

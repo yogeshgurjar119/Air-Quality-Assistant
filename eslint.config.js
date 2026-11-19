@@ -20,4 +20,9 @@ export default [
     languageOptions: { globals: globals.node },
   },
   { files: ['public/**/*.js'], languageOptions: { globals: globals.browser } },
+  {
+    // DOM tests run browser code under jsdom, so they see both Node and browser globals.
+    files: ['tests/ui-*.test.js', 'tests/api-client.test.js', 'tests/helpers-dom.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
 ];

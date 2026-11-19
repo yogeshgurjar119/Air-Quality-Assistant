@@ -11,11 +11,29 @@ export const LAST_STEP = STEPS.length - 1;
 
 /** Human-readable labels for every answer, keyed by profile field. */
 export const LABELS = Object.freeze({
-  commute: { car: 'Car', motorbike: 'Motorbike / scooter', public_transport: 'Public transport', walk: 'Walk', cycle: 'Cycle', work_from_home: 'Work from home' },
-  cooking: { lpg_gas: 'LPG / natural gas', electric: 'Electric', induction: 'Induction', biomass: 'Wood / charcoal', mixed: 'Mixed' },
+  commute: {
+    car: 'Car',
+    motorbike: 'Motorbike / scooter',
+    public_transport: 'Public transport',
+    walk: 'Walk',
+    cycle: 'Cycle',
+    work_from_home: 'Work from home',
+  },
+  cooking: {
+    lpg_gas: 'LPG / natural gas',
+    electric: 'Electric',
+    induction: 'Induction',
+    biomass: 'Wood / charcoal',
+    mixed: 'Mixed',
+  },
   home: { apartment: 'Apartment', house: 'House' },
   purifier: { none: 'No air cleaning', hepa_purifier: 'HEPA purifier', diy_filter: 'DIY box-fan filter' },
-  vulnerable: { children: 'Children', elderly: 'Older adults', asthma_or_lung_condition: 'Asthma or lung condition', pregnancy: 'Pregnancy' },
+  vulnerable: {
+    children: 'Children',
+    elderly: 'Older adults',
+    asthma_or_lung_condition: 'Asthma or lung condition',
+    pregnancy: 'Pregnancy',
+  },
 });
 
 export const clampStep = (index) => Math.min(Math.max(index, 0), LAST_STEP);

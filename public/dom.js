@@ -2,13 +2,13 @@
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** Creates an element. `attrs` are set as attributes; `text` as textContent. */
+/** Creates an element. `attrs` are set as attributes; `text` as textContent; falsy children are skipped. */
 export const el = (tag, { className, text, attrs = {} } = {}, children = []) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   Object.entries(attrs).forEach(([name, value]) => node.setAttribute(name, value));
-  node.append(...children);
+  node.append(...children.filter(Boolean));
   return node;
 };
 

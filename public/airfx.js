@@ -22,7 +22,7 @@ const rand = (min, max) => min + Math.random() * (max - min);
 export const startAirFx = (canvas) => {
   const context = canvas.getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (!context || motion.matches) return { setLevel() {} };
+  if (!context) return { setLevel() {} };
 
   let width = 0;
   let height = 0;
@@ -32,7 +32,12 @@ export const startAirFx = (canvas) => {
   let raf = 0;
   let last = 0;
   const particles = [];
-  const blobs = Array.from({ length: HAZE_BLOBS }, (_, i) => ({ x: rand(0, 1), y: rand(0.1, 0.9), r: rand(0.25, 0.45), speed: 0.004 + i * 0.002 }));
+  const blobs = Array.from({ length: HAZE_BLOBS }, (_, i) => ({
+    x: rand(0, 1),
+    y: rand(0.1, 0.9),
+    r: rand(0.25, 0.45),
+    speed: 0.004 + i * 0.002,
+  }));
 
   const targetCount = () => Math.round(Math.min(Math.max(width / 22, 24), 70) * DENSITY[level]);
   const spawn = (fromEdge = false) => ({
@@ -102,10 +107,21 @@ export const startAirFx = (canvas) => {
   };
 
   resize();
-  window.addEventListener('resize', resize);
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 120);
+  });
   document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
-  motion.addEventListener('change', () => (motion.matches ? (stop(), context.clearRect(0, 0, width, height)) : start()));
-  start();
+  motion.addEventListener('change', () => {
+    if (motion.matches) {
+      stop();
+      context.clearRect(0, 0, width, height);
+    } else {
+      start();
+    }
+  });
+  if (!motion.matches) start();
 
   return {
     /** Re-tints and re-densifies the scene for an AQI band (`good` … `hazardous`). */

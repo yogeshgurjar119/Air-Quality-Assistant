@@ -3,7 +3,7 @@
 AirWise is a GenAI assistant that turns **live air-quality data** for a user's city into **low-emission daily routines, indoor air-quality hacks and sustainable alternatives** tailored to their household, explains the **direct impact** of every suggestion, and answers follow-up questions in a **chat assistant**.
 
 - **Vertical:** Environment & public health (urban air pollution, family/community level)
-- **Stack:** Node.js 22 + Express, vanilla HTML/CSS/ES modules (no build step), ESLint, `node:test`
+- **Stack:** Node.js 22 + Express, vanilla HTML/CSS/ES modules (no build step), ESLint + Prettier, `node:test` + jsdom
 - **Size:** ~0.2 MB of source (limit: 10 MB). 5 runtime dependencies.
 - **Deploys to:** Vercel or Netlify in minutes (config included), or any Node host.
 
@@ -29,8 +29,9 @@ AirWise is a GenAI assistant that turns **live air-quality data** for a user's c
 npm install
 cp .env.example .env     # then paste your AI API key into .env
 npm start                # http://localhost:3000
-npm run check            # lint + 102 tests (no network or key needed)
-npm run test:coverage    # ~99.8% line coverage of server-side code (see note below)
+npm run check            # format check + lint + 173 tests (no network or key needed)
+npm run test:coverage    # line/branch coverage for server and UI modules
+npm run format           # auto-format everything with Prettier
 ```
 
 | Variable | Default | Purpose |
@@ -64,7 +65,7 @@ The header calls `GET /api/sources`, which probes each of these with a tiny requ
 
 **Netlify** — import the repo, or run `npx netlify deploy --prod`. `netlify.toml` publishes `public/` and routes `/api/*` to the `netlify/functions/api.js` function. Add `NVIDIA_API_KEY` under *Site configuration → Environment variables*. On the free plan (10 s function limit) also set `REQUEST_TIMEOUT_MS=4000` and `AI_TOTAL_TIMEOUT_MS=6000`: the AI chain is then stopped after 6 s in total and the built-in answer is returned, well before Netlify cuts the function off.
 
-Both configs also send security headers (CSP etc.) for static files, matching what Express sends for API responses. No build step is needed.
+Both configs also send security headers (CSP, Permissions-Policy, …) for static files. The policy is defined once in `server/securityHeaders.js`, and `tests/headers.test.js` fails if `vercel.json` or `netlify.toml` ever drift from it. No build step is needed.
 
 ## How it works
 
@@ -91,20 +92,24 @@ The dashboard renders as soon as `/api/air` returns (fast, no LLM); the AI plan 
 ```
 server/
   index.js, bootstrap.js   local entry / shared wiring (also used by serverless entries)
-  app.js                   Express app: helmet CSP, gzip, rate limit, routes, error handler
-  config.js                validated env config
+  app.js                   Express app: security headers, gzip, rate limits, routes, error mapping
+  securityHeaders.js       single source of truth for CSP / Permissions-Policy
+  config.js, errors.js     validated env config, user-safe HttpError
+  data/                    endpoints.js (upstream URLs), majorCities.js (comparison list)
   services/
-    profile.js, chat.js    input validation (allow-lists, length limits)
-    airQuality.js          geocoding, live readings, 24 h outlook
-    weather.js, density.js optional enrichments
-    context.js, cache.js   parallel fetch + TTL/in-flight cache
-    prompt.js              plan and chat prompts
-    nvidia.js              LLM client (key stays server-side)
-    planSchema.js          JSON extraction + validation of LLM output
-    fallback.js, planner.js  offline planner + orchestration
+    profile.js, chat.js, guard.js   input validation, sanitising, prompt-injection screen
+    airQuality.js, weather.js, density.js, aqi.js, comparison.js   data providers + pure maths
+    context.js, cache.js, http.js, sources.js   parallel fetch, TTL/in-flight cache, source health
+    prompt.js, nvidia.js, planSchema.js         prompts, LLM client + model chain, output validation
+    fallback.js, fallbackChat.js, planner.js    built-in answers + orchestration
 api/index.js               Vercel entry      netlify/functions/api.js   Netlify entry
-public/                    index.html, styles.css, app.js, api.js, render.js, chat.js, format.js, dom.js
-tests/                     unit, API, frontend-logic and deploy-entry tests
+public/                    index.html, styles.css
+  app.js                   composition root (wiring only)
+  wizard.js, wizard-model.js   questionnaire controller + pure step/label logic
+  results.js               results screen: air first, AI plan after, stale-response safe
+  chat.js, header.js, render.js, airfx.js, dom.js, api.js, format.js   UI modules (each unit-tested)
+tests/                     unit, API, UI (jsdom), headers and deploy-entry tests
+.github/                   CI workflow (format, lint, tests+coverage, audit) and Dependabot
 ```
 
 Dependencies are injected (`fetchImpl`, `llm`, `planner`, `logger`, clock), so every layer is testable offline.
@@ -130,10 +135,10 @@ These cases are covered by automated tests (`tests/api.test.js` → "hostile and
 
 | Area | What was done |
 |---|---|
-| **Code quality** | ESLint (flat config) enforced via `npm run check`; small single-purpose modules; dependency injection; shared validation; no dead code; JSDoc on non-obvious functions |
+| **Code quality** | Prettier + ESLint enforced by `npm run check` and CI; small single-purpose modules (frontend split into wizard / results / chat / header / render with `app.js` as wiring only); dependency injection; one source of truth for the security policy and upstream endpoints (with parity tests); pure `describeError` / `clientKey` helpers; no dead code; JSDoc on non-obvious functions; Dependabot for dependency updates |
 | **Security** | API key server-side only, git-ignored; defence in depth for unrelated/hostile input (see above): allow-list validation, sanitising, pre-model injection screen, topic-restricted prompts, textContent-only rendering; 4 KB body limit; general + stricter AI per-IP rate limits (work behind Vercel/Netlify proxies); Permissions-Policy; `helmet` CSP with no inline script/style; XSS-safe rendering; sanitised upstream errors; timeouts everywhere; `npm audit`: 0 vulnerabilities |
 | **Efficiency** | No build step or framework; parallel + cached + de-duplicated upstream calls; gzip; capped LLM tokens; ~0.2 MB source |
-| **Testing** | tests (backend, API and pure UI logic), ~99.8% line coverage of `server/`, `api/`, `netlify/` and the pure UI modules (`format.js`, `wizard-model.js`); the DOM modules in `public/` (rendering, chat panel, header, animation) are verified manually and by browser checks but have **no automated tests yet**: AQI bands, hostile input (SQL/XSS/path/template/prototype-pollution payloads, invisible characters, prompt injection), validation, LLM parsing, every fallback-plan combination, forecast/density maths, cache semantics, all API routes (success, cache, dedupe, offline, model-chain failover and cooldown, built-in chat answers, LLM error/garbage/empty, 404/413/429/502/503), headers, key non-exposure, frontend formatting, Netlify/Vercel entry points |
+| **Testing** | 173 tests: backend and API (hostile input, model failover, cooldown, time budget, built-in answers, 404/413/429/502/503, headers, deploy entries), plus **jsdom tests for the UI** (wizard, results screen incl. stale responses, chat panel, header status, rendering and XSS safety, animation, API client). Coverage covers the server and every UI module; `public/airfx.js` is only partly covered because its per-frame drawing loop needs a real canvas. |
 | **Accessibility** | Landmarks, skip link, visible labels, `fieldset/legend`, `role="log"` chat, `aria-live`/`aria-busy`, `role="alert"` errors, text alternatives for gauge and chart (cleanest/worst hour spelled out), AQI never colour-only, 44 px targets, focus rings, light/dark, `prefers-reduced-motion` disables all animation incl. the particle canvas (which is `aria-hidden`) |
 | **Problem alignment** | The brief asks for low-emission routines, indoor hacks and sustainable alternatives, tailored to location and lifestyle, with the direct impact explained. AirWise uses live local data (city AQI, pollutants, weather, density), a 4-step lifestyle questionnaire (commute, cooking fuel, home, purifier, sensitive members), three plan sections each with a "Why it matters" line, WHO-guideline and world-comparison context that make the stakes concrete, and a grounded chat assistant. It works for families with or without AI. |
 

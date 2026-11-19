@@ -59,7 +59,10 @@ export const buildMessages = ({ profile, ...city }) => {
   };
   return [
     { role: 'system', content: PLAN_SYSTEM_PROMPT },
-    { role: 'user', content: `Create today's plan for this household.\n\`\`\`json\n${JSON.stringify(context)}\n\`\`\`` },
+    {
+      role: 'user',
+      content: `Create today's plan for this household.\n\`\`\`json\n${JSON.stringify(context)}\n\`\`\``,
+    },
   ];
 };
 

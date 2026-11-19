@@ -1,10 +1,10 @@
-import { AIR_QUALITY_URL, GEOCODING_URL } from './airQuality.js';
+import { AIR_QUALITY_URL, GEOCODING_URL, SPARQL_URL, WEATHER_URL } from '../data/endpoints.js';
 import { createAsyncCache } from './cache.js';
-import { SPARQL_URL } from './density.js';
 import { fetchJson } from './http.js';
-import { WEATHER_URL } from './weather.js';
 
 const STATUS_TTL_MS = 5 * 60_000;
+/** A status with failures is re-checked sooner, so a brief blip isn't shown for the full TTL. */
+const RECHECK_AFTER_FAILURE_MS = 30_000;
 const PROBE_TIMEOUT_MS = 5_000;
 
 const query = (base, params) => `${base}?${new URLSearchParams(params)}`;
@@ -60,11 +60,20 @@ export const createSourceMonitor = ({ timeoutMs, fetchImpl, clock = Date.now, no
     }
   };
 
+  let degradedSince = null;
+
   return {
-    getStatus: () =>
-      cache.get('status', async () => ({
+    getStatus: async () => {
+      if (degradedSince !== null && clock() - degradedSince >= RECHECK_AFTER_FAILURE_MS) {
+        cache.delete('status');
+        degradedSince = null;
+      }
+      const status = await cache.get('status', async () => ({
         checkedAt: new Date(clock()).toISOString(),
         sources: await Promise.all(SOURCES.map(check)),
-      })),
+      }));
+      if (degradedSince === null && status.sources.some((source) => !source.ok)) degradedSince = clock();
+      return status;
+    },
   };
 };

@@ -23,6 +23,10 @@ export const createAsyncCache = ({ ttlMs, maxEntries = 500, now = Date.now }) =>
       });
       return promise;
     },
+    /** Forgets a key so the next `get` loads it afresh. */
+    delete(key) {
+      entries.delete(key);
+    },
     get size() {
       return entries.size;
     },

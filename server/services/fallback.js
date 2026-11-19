@@ -43,7 +43,9 @@ const routines = ({ air, profile }) => {
     ),
     cycle: item(
       'Cycle on low-traffic routes',
-      poor ? 'On high-AQI days, switch to transit or wear a well-fitted FFP2/N95 mask.' : 'Use quieter streets or bike paths.',
+      poor
+        ? 'On high-AQI days, switch to transit or wear a well-fitted FFP2/N95 mask.'
+        : 'Use quieter streets or bike paths.',
       'Cycling is zero-emission; avoiding busy roads and high-AQI hours lowers the extra pollution you breathe while exerting.',
     ),
     work_from_home: item(

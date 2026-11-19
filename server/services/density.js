@@ -1,6 +1,5 @@
+import { SPARQL_URL } from '../data/endpoints.js';
 import { fetchJson } from './http.js';
-
-export const SPARQL_URL = 'https://query.wikidata.org/sparql';
 const SQ_METRES_PER_SQ_KM = 1_000_000;
 
 /** Wikidata links GeoNames ids (P1566) to population (P1082) and area (P2046, normalised to m²). */

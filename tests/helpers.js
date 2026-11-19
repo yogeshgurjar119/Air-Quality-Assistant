@@ -9,7 +9,13 @@ export const validBody = Object.freeze({
   vulnerable: ['children'],
 });
 
-export const sampleLocation = Object.freeze({ name: 'Delhi', region: 'Delhi', country: 'India', latitude: 28.6, longitude: 77.2 });
+export const sampleLocation = Object.freeze({
+  name: 'Delhi',
+  region: 'Delhi',
+  country: 'India',
+  latitude: 28.6,
+  longitude: 77.2,
+});
 
 export const sampleAir = (aqi = 180, level = 'unhealthy', label = 'Unhealthy') => ({
   aqi,
@@ -38,7 +44,18 @@ export const silentLogger = { warn() {}, error() {}, log() {} };
 /** Upstream stubs matching the real provider URLs. */
 export const geocodeOk = () =>
   jsonResponse({
-    results: [{ id: 1273294, name: 'Delhi', admin1: 'Delhi', country: 'India', country_code: 'IN', latitude: 28.6, longitude: 77.2, population: 11_000_000 }],
+    results: [
+      {
+        id: 1273294,
+        name: 'Delhi',
+        admin1: 'Delhi',
+        country: 'India',
+        country_code: 'IN',
+        latitude: 28.6,
+        longitude: 77.2,
+        population: 11_000_000,
+      },
+    ],
   });
 
 /** Batch requests (comma-separated coordinates) get one reading per city: AQI = 20 + 8 × index. */
@@ -61,7 +78,8 @@ export const airOk = (url) => {
 /** Like airOk, but the world-comparison batch request fails. */
 export const airOkWithoutBatch = (url) => (isBatch(url) ? jsonResponse({}, 503) : airOk(url));
 
-export const weatherOk = () => jsonResponse({ current: { temperature_2m: 22.5, relative_humidity_2m: 55, wind_speed_10m: 3.1 } });
+export const weatherOk = () =>
+  jsonResponse({ current: { temperature_2m: 22.5, relative_humidity_2m: 55, wind_speed_10m: 3.1 } });
 
 export const densityOk = () =>
   jsonResponse({ results: { bindings: [{ pop: { value: '26495000' }, area: { value: '1484000000' } }] } });

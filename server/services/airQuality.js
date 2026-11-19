@@ -1,9 +1,8 @@
+import { AIR_QUALITY_URL, GEOCODING_URL } from '../data/endpoints.js';
 import { HttpError } from '../errors.js';
 import { categorizeAqi } from './aqi.js';
 import { fetchJson } from './http.js';
 
-export const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
-export const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 const CURRENT_FIELDS = ['us_aqi', 'pm2_5', 'pm10', 'nitrogen_dioxide', 'ozone'];
 const FORECAST_HOURS = 24;
 
@@ -37,7 +36,10 @@ export const buildForecast = (hourly, currentTime) => {
   const times = hourly?.time ?? [];
   const values = hourly?.us_aqi ?? [];
   const currentHour = typeof currentTime === 'string' ? currentTime.slice(0, 13) : '';
-  const start = Math.max(0, times.findIndex((t) => t.slice(0, 13) >= currentHour));
+  const start = Math.max(
+    0,
+    times.findIndex((t) => t.slice(0, 13) >= currentHour),
+  );
 
   const hours = times
     .slice(start, start + FORECAST_HOURS)

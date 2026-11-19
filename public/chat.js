@@ -7,13 +7,26 @@ const SUGGESTIONS = [
   'Cheapest way to clean my indoor air?',
 ];
 const MAX_HISTORY = 8;
-const GREETING = 'Hi, I\'m AirWise. Enter your city above, then ask me anything about air quality, your family\'s health or cleaner daily habits.';
+const GREETING =
+  "Hi, I'm AirWise. Enter your city above, then ask me anything about air quality, your family's health or cleaner daily habits.";
 
 /**
  * Floating chat assistant available on every page. It has its own city field (pre-filled from the
  * wizard), so people can chat straight away without completing the questionnaire first.
  */
-export const createChat = ({ panel, launcher, openers, closeButton, cityInput, log, chips, form, input, send, note }) => {
+export const createChat = ({
+  panel,
+  launcher,
+  openers,
+  closeButton,
+  cityInput,
+  log,
+  chips,
+  form,
+  input,
+  send,
+  note,
+}) => {
   let history = [];
   let activeCity = '';
   let lastSuggested = '';
@@ -71,7 +84,12 @@ export const createChat = ({ panel, launcher, openers, closeButton, cityInput, l
       const { reply, source } = await sendChat(city, history);
       pending.textContent = reply;
       if (source === 'rules') {
-        pending.append(el('small', { className: 'msg-note', text: 'Built-in guidance from live air data (AI is unavailable right now)' }));
+        pending.append(
+          el('small', {
+            className: 'msg-note',
+            text: 'Built-in guidance from live air data (AI is unavailable right now)',
+          }),
+        );
       }
       history = [...history, { role: 'assistant', content: reply }].slice(-MAX_HISTORY);
     } catch (error) {
@@ -93,7 +111,9 @@ export const createChat = ({ panel, launcher, openers, closeButton, cityInput, l
     event.preventDefault();
     ask(input.value);
   });
-  [launcher, ...openers].forEach((button) => button.addEventListener('click', () => (isOpen() && button === launcher ? close() : open())));
+  [launcher, ...openers].forEach((button) =>
+    button.addEventListener('click', () => (isOpen() && button === launcher ? close() : open())),
+  );
   closeButton.addEventListener('click', close);
   panel.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') close();
@@ -111,7 +131,9 @@ export const createChat = ({ panel, launcher, openers, closeButton, cityInput, l
     /** Chat always works; without an AI model the server answers from built-in guidance. */
     setAiOnline(online) {
       note.hidden = online;
-      note.textContent = online ? '' : 'The AI model is offline, so you will get built-in guidance based on live air data.';
+      note.textContent = online
+        ? ''
+        : 'The AI model is offline, so you will get built-in guidance based on live air data.';
     },
   };
 };

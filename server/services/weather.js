@@ -1,6 +1,5 @@
+import { WEATHER_URL } from '../data/endpoints.js';
 import { fetchJson } from './http.js';
-
-export const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
 
 /** Current weather that affects how pollution behaves (calm, humid air traps pollutants). */
 export const fetchWeather = async ({ latitude, longitude }, options) => {

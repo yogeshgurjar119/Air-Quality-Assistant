@@ -82,7 +82,9 @@ export const createNvidiaClient = ({
 
     generatePlan: (messages) =>
       withFallback(async (model, attemptTimeoutMs) =>
-        normalizePlan(extractJson(await complete(model, messages, { maxTokens: 1000, temperature: 0.4 }, attemptTimeoutMs))),
+        normalizePlan(
+          extractJson(await complete(model, messages, { maxTokens: 1000, temperature: 0.4 }, attemptTimeoutMs)),
+        ),
       ),
 
     chat: (messages) =>

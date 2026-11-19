@@ -6,17 +6,25 @@ const REFRESH_MS = 5 * 60_000;
 
 const chip = (source) =>
   el('li', {}, [
-    el('a', { className: source.ok ? 'source live' : 'source down', attrs: { href: source.homepage, target: '_blank', rel: 'noopener noreferrer' } }, [
-      el('span', { className: 'dot', attrs: { 'aria-hidden': 'true' } }),
-      el('span', { className: 'source-name', text: source.name }),
-      el('span', { className: 'source-state', text: source.ok ? `Live · ${source.latencyMs} ms` : 'Unavailable' }),
-      el('span', { className: 'visually-hidden', text: `${source.provides}. Opens in a new tab.` }),
-    ]),
+    el(
+      'a',
+      {
+        className: source.ok ? 'source live' : 'source down',
+        attrs: { href: source.homepage, target: '_blank', rel: 'noopener noreferrer' },
+      },
+      [
+        el('span', { className: 'dot', attrs: { 'aria-hidden': 'true' } }),
+        el('span', { className: 'source-name', text: source.name }),
+        el('span', { className: 'source-state', text: source.ok ? `Live · ${source.latencyMs} ms` : 'Unavailable' }),
+        el('span', { className: 'visually-hidden', text: `${source.provides}. Opens in a new tab.` }),
+      ],
+    ),
   ]);
 
 /**
  * Shows which free public data sources are currently reachable. The summary pill is always visible;
  * the per-source list reveals on wider screens. Refreshes every five minutes while the tab is visible.
+ * Returns a function that stops the refreshing.
  */
 export const startSourceStatus = ({ summary, list }) => {
   const render = ({ sources }) => {
@@ -34,7 +42,8 @@ export const startSourceStatus = ({ summary, list }) => {
       });
 
   refresh();
-  setInterval(() => {
+  const timer = setInterval(() => {
     if (!document.hidden) refresh();
   }, REFRESH_MS);
+  return () => clearInterval(timer);
 };

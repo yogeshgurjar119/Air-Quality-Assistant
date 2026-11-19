@@ -42,9 +42,7 @@ export const parseProfile = (input) => {
   const city = parseCity(body.city);
 
   const rawVulnerable = Array.isArray(body.vulnerable) ? body.vulnerable : [];
-  const vulnerable = [...new Set(rawVulnerable.map((v) => pickEnum('vulnerable', v)))].filter(
-    (v) => v !== 'none',
-  );
+  const vulnerable = [...new Set(rawVulnerable.map((v) => pickEnum('vulnerable', v)))].filter((v) => v !== 'none');
 
   return {
     city,
